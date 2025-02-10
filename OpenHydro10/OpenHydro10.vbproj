@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <RootNamespace>OpenHydro10</RootNamespace>
+    <TargetFramework>net6.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="AMMO">
+      <HintPath>..\..\..\..\..\..\Program Files\Energy Exemplar\PLEXOS 10.0\AMMO.dll</HintPath>
+    </Reference>
+    <Reference Include="EECOMPILER">
+      <HintPath>..\..\..\..\..\..\Program Files\Energy Exemplar\PLEXOS 10.0\EECOMPILER.dll</HintPath>
+    </Reference>
+    <Reference Include="EEUTILITY">
+      <HintPath>..\..\..\..\..\..\Program Files\Energy Exemplar\PLEXOS 10.0\EEUTILITY.dll</HintPath>
+    </Reference>
+    <Reference Include="EnergyExemplar.Core.Plexos">
+      <HintPath>..\..\..\..\..\..\Program Files\Energy Exemplar\PLEXOS 10.0\EnergyExemplar.Core.Plexos.dll</HintPath>
+    </Reference>
+    <Reference Include="EnergyExemplar.PLEXOS.Core">
+      <HintPath>..\..\..\..\..\..\Program Files\Energy Exemplar\PLEXOS 10.0\EnergyExemplar.PLEXOS.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="EnergyExemplar.PLEXOS.Energy">
+      <HintPath>..\..\..\..\..\..\Program Files\Energy Exemplar\PLEXOS 10.0\EnergyExemplar.PLEXOS.Energy.dll</HintPath>
+    </Reference>
+    <Reference Include="EnergyExemplar.PLEXOS.Utility">
+      <HintPath>..\..\..\..\..\..\Program Files\Energy Exemplar\PLEXOS 10.0\EnergyExemplar.PLEXOS.Utility.dll</HintPath>
+    </Reference>
+    <Reference Include="PLEXOSCommon">
+      <HintPath>..\..\..\..\..\..\Program Files\Energy Exemplar\PLEXOS 10.0\PLEXOSCommon.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

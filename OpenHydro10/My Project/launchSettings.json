@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "OpenHydro10": {
+      "commandName": "Project"
+    },
+    "ExeP10": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Program Files\\Energy Exemplar\\PLEXOS 10.0\\PLEXOS64.exe"
+    }
+  }
+}
