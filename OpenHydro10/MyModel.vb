@@ -302,7 +302,6 @@ Class MyModel
         Dim dRiego(nTotalPeriods) As Double
         Dim dHoyaInt(nTotalPeriods) As Double
         Dim dHoyaIntLaja(nTotalPeriods) As Double
-        Dim dHoyaAltoLaja(nTotalPeriods) As Double
         Dim varQInvFree As Variable
 
         For Each v As Variable In ModelGlobals.VariablesIN.InServiceObjects
@@ -325,11 +324,6 @@ Class MyModel
             If Utils.IsHoyaIntermediaLaja(v) Then
                 For nCurPeriod As Integer = 1 To nTotalPeriods
                     dHoyaIntLaja(nCurPeriod) += v(SystemVariablesEnum.Profile, nCurPeriod)
-                Next
-            End If
-            If Utils.IsAltoLaja(v) Then
-                For nCurPeriod As Integer = 1 To nTotalPeriods
-                    dHoyaAltoLaja(nCurPeriod) += v(SystemVariablesEnum.Profile, nCurPeriod)
                 Next
             End If
         Next
@@ -582,10 +576,14 @@ Class MyModel
                 End If
                 dQMauleIrrMaxStep = SafeDivision(dQMauleIrrMaxStep, nTotalHours * SecondsInHour)
 
-                If (dQMauleIrrReqStep > dQMauleIrrMaxStep) Then
+                Dim dShortageStepMaule = dQMauleIrrReqStep - dQMauleIrrMaxStep
+                If (dShortageStepMaule > 0) Then
+
                     For nCurPeriod As Integer = 1 To nTotalPeriods
-                        c.ConstraintRow.RHS(nCurPeriod) = dQMauleIrrReqStep - dQMauleIrrMaxStep
+                        Dim dShortageMaule = Math.Min(dShortageStepMaule, varRiegoTotalMaule(SystemVariablesEnum.Profile, nCurPeriod))
+                        c.ConstraintRow.RHS(nCurPeriod) = dShortageMaule
                     Next
+
                 End If
 
             End If
@@ -603,48 +601,52 @@ Class MyModel
         Dim dQLajasaltosMaxStep As Double
         Dim dFiltLajaMedio As Double = Utils.GetFiltration("ELTORO", dInitialVolumeELTORO)
         Dim dHoyaIntLajaMedio As Double = dHoyaIntLaja.Average()
-        Dim dHoyaAltoLajaMedio As Double = dHoyaAltoLaja.Average()
 
 
         dQMaxRiegoStep = SafeDivision(dInitialVolumeLaja_Mixto * stoLaja_Mixto.VolumeScalar + dInitialVolumeLaja_Riego * stoLaja_Riego.VolumeScalar, (nTotalHours * SecondsInHour))
 
         For nCurPeriod As Integer = 1 To nTotalPeriods
-            dQLajaIrr2ReqStep += varLAJAirrigators2(SystemVariablesEnum.Profile, nCurPeriod) * CurrentEnergyModel.Steps.HoursinPeriod(nCurPeriod)
-        Next
-        dQLajaIrr2ReqStep = SafeDivision(dQLajaIrr2ReqStep, nTotalHours)
-        dQLajaIrr2MaxStep = Math.Min(dQMaxRiegoStep + dFiltLajaMedio + dHoyaAltoLajaMedio + dHoyaIntLajaMedio, dQLajaIrr2ReqStep)
-
-        For nCurPeriod As Integer = 1 To nTotalPeriods
             dQLajaIrr1ReqStep += varLAJAirrigators1(SystemVariablesEnum.Profile, nCurPeriod) * CurrentEnergyModel.Steps.HoursinPeriod(nCurPeriod)
         Next
         dQLajaIrr1ReqStep = SafeDivision(dQLajaIrr1ReqStep, nTotalHours)
-        dQLajaIrr1MaxStep = Math.Min(Math.Max(dQMaxRiegoStep + dFiltLajaMedio + dHoyaAltoLajaMedio - dQLajaIrr2ReqStep, 0.0), dQLajaIrr1ReqStep)
+        dQLajaIrr1MaxStep = Math.Min(Math.Max(dQMaxRiegoStep + dFiltLajaMedio + dHoyaIntLajaMedio, 0.0), dQLajaIrr1ReqStep)
+
+        For nCurPeriod As Integer = 1 To nTotalPeriods
+            dQLajaIrr2ReqStep += varLAJAirrigators2(SystemVariablesEnum.Profile, nCurPeriod) * CurrentEnergyModel.Steps.HoursinPeriod(nCurPeriod)
+        Next
+        dQLajaIrr2ReqStep = SafeDivision(dQLajaIrr2ReqStep, nTotalHours)
+        dQLajaIrr2MaxStep = Math.Min(Math.Max(dQMaxRiegoStep + dFiltLajaMedio + dHoyaIntLajaMedio - dQLajaIrr1MaxStep, 0.0), dQLajaIrr2ReqStep)
 
         For nCurPeriod As Integer = 1 To nTotalPeriods
             dQLajasaltosReqStep += varLAJAsaltos(SystemVariablesEnum.Profile, nCurPeriod) * CurrentEnergyModel.Steps.HoursinPeriod(nCurPeriod)
         Next
         dQLajasaltosReqStep = SafeDivision(dQLajasaltosReqStep, nTotalHours)
-        dQLajasaltosMaxStep = Math.Min(Math.Max(dQMaxRiegoStep + dFiltLajaMedio + dHoyaAltoLajaMedio + dHoyaIntLajaMedio - dQLajaIrr1ReqStep - dQLajaIrr2ReqStep, 0.0), dQLajasaltosReqStep)
+        dQLajasaltosMaxStep = Math.Min(Math.Max(dQMaxRiegoStep + dFiltLajaMedio + dHoyaIntLajaMedio - dQLajaIrr1MaxStep - dQLajaIrr2MaxStep, 0.0), dQLajasaltosReqStep)
+
+        Dim bUseMovAvg As Boolean = True
 
         For Each c As Constraint In ModelGlobals.ConstraintsIN.InServiceObjects
 
             If c.Name.Equals("Qmin_Saltos", StringComparison.OrdinalIgnoreCase) Then
-
-                For nCurPeriod As Integer = 1 To nTotalPeriods
-                    c.ConstraintRow.RHS(nCurPeriod) = 1.0 * dQLajasaltosMaxStep + 0.0 * dQLajaIrr1MaxStep + 0.0 * dQLajaIrr2MaxStep 'TODO: Move coefficients to variables
-                Next
+                If Not c.IsDefinedNonZero(SystemConstraintsEnum.RHS) Then
+                    For nCurPeriod As Integer = 1 To nTotalPeriods
+                        c.ConstraintRow.RHS(nCurPeriod) = 1.0 * dQLajasaltosMaxStep + 0.0 * dQLajaIrr1MaxStep + 0.0 * dQLajaIrr2MaxStep 'TODO: Move coefficients to Variables
+                    Next
+                End If
 
             ElseIf c.Name.Equals("Qmin_Tucapel", StringComparison.OrdinalIgnoreCase) Then
+                If Not c.IsDefinedNonZero(SystemConstraintsEnum.RHS) Then
+                    For nCurPeriod As Integer = 1 To nTotalPeriods
+                        c.ConstraintRow.RHS(nCurPeriod) = 0.0 * dQLajasaltosMaxStep + 0.628 * dQLajaIrr1MaxStep + 1.0 * dQLajaIrr2MaxStep
+                    Next
+                End If
 
-                For nCurPeriod As Integer = 1 To nTotalPeriods
-                    c.ConstraintRow.RHS(nCurPeriod) = 0.0 * dQLajasaltosMaxStep + 0.628 * dQLajaIrr1MaxStep + 1.0 * dQLajaIrr2MaxStep
-                Next
-
-            ElseIf c.Name.Equals("Qmin_Zanartu-Collao", StringComparison.OrdinalIgnoreCase) Then
-
-                For nCurPeriod As Integer = 1 To nTotalPeriods
-                    c.ConstraintRow.RHS(nCurPeriod) = 0.0 * dQLajasaltosMaxStep + 0.372 * dQLajaIrr1MaxStep + 0.0 * dQLajaIrr2MaxStep
-                Next
+            ElseIf c.Name.Equals("Qmin_Zanartu_Collao", StringComparison.OrdinalIgnoreCase) Then
+                If Not c.IsDefinedNonZero(SystemConstraintsEnum.RHS) Then
+                    For nCurPeriod As Integer = 1 To nTotalPeriods
+                        c.ConstraintRow.RHS(nCurPeriod) = 0.0 * dQLajasaltosMaxStep + 0.372 * dQLajaIrr1MaxStep + 0.0 * dQLajaIrr2MaxStep
+                    Next
+                End If
 
             End If
 

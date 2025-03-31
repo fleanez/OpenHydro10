@@ -40,14 +40,11 @@ Module Utils
             v.Name.Equals("LAMINA", StringComparison.OrdinalIgnoreCase)
     End Function
 
-    Function IsAltoLaja(v As Variable) As Boolean
-        Return (v.Name.Equals("ABANICO", StringComparison.OrdinalIgnoreCase) OrElse
-            v.Name.Equals("POLCURA", StringComparison.OrdinalIgnoreCase))
-    End Function
-
     Function IsHoyaIntermediaLaja(v As Variable) As Boolean
         Return (v.Name.Equals("RIORUCUE", StringComparison.OrdinalIgnoreCase) OrElse
-            v.Name.Equals("B_TUCAPEL", StringComparison.OrdinalIgnoreCase))
+            v.Name.Equals("B_TUCAPEL", StringComparison.OrdinalIgnoreCase)) OrElse
+            (v.Name.Equals("ABANICO", StringComparison.OrdinalIgnoreCase) OrElse
+            v.Name.Equals("POLCURA", StringComparison.OrdinalIgnoreCase))
     End Function
 
     Function GetStorage(c As Constraint) As Storage
